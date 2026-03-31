@@ -42,7 +42,9 @@ var login = async(req,res)=>{
 
     var token = jwt.sign({
         userId : userExists._id,
-        email : userExists.email
+        email : userExists.email,
+        role : userExists.role
+
     },
     process.env.JWT_TOKEN,
     { expiresIn: "1d" }
