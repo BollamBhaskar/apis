@@ -1,10 +1,15 @@
 
-var Product = require("../UserSchema/ProductSchema")
+var Product = require("../UserSchema/ProductSchema");
+const { uploadToCloudinary } = require("../helper/cloudinaryhelper");
+
+
+
 
 
 var getAllProducts = async(req,res)=>{
     try{
         var allProducts =  await Product.find()
+        console.log(req.user);
         res.status(200).json({products: allProducts})
 
     }catch(error){
@@ -26,11 +31,21 @@ var getSingleProduct = async(req,res)=>{
 
 var addNewProduct = async(req,res)=>{
     try{
+
         var {title,description,price} = req.body
+        if(!req.file){
+            return res.status(200).json({message : "file missing"})
+        }
+        // upload to cloudinary
+        var {url,publicId} = await uploadToCloudinary(req.file.path)
         var newProduct = await Product.create({
         title,
         description,
-        price
+        price,
+        image : {
+            url,
+            publicId
+        }
     })
     res.status(201).json({message : "productadded",product : newProduct})
     }catch(error){

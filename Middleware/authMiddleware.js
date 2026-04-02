@@ -1,6 +1,5 @@
 var jwt = require("jsonwebtoken")
 
-
 var authMiddleware = async(req,res,next)=>{
     try{
         var authHeader = req.headers.authorization

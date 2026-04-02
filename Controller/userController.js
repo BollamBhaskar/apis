@@ -1,6 +1,12 @@
-var User=require("../UserSchema/UserSchema")
+var User = require("../UserSchema/UserSchema")
+
 var bcrypt = require("bcrypt")
+
 var jwt = require("jsonwebtoken")
+
+
+
+
 var registerUser = async(req,res)=>{
     try{
         var {name,email,password} = req.body
@@ -28,7 +34,8 @@ var registerUser = async(req,res)=>{
 
 var login = async(req,res)=>{
     try{
-        var {name,email,password} = req.body
+        
+        var {email,password} = req.body
         
         var userExists = await User.findOne({email})
         if(!userExists){
@@ -44,7 +51,6 @@ var login = async(req,res)=>{
         userId : userExists._id,
         email : userExists.email,
         role : userExists.role
-
     },
     process.env.JWT_TOKEN,
     { expiresIn: "1d" }
