@@ -5,7 +5,7 @@ var bycrpt = require("bcrypt")
 
 var getProfile = async(req,res)=>{
     try{
-        var userId = req.params.id 
+        var userId = req.user.userId
         if(!userId){
             return res.status(403).json({message : "no user found"})
         }
@@ -20,7 +20,7 @@ var getProfile = async(req,res)=>{
 
 var updateProfile = async(req,res)=>{
     try{
-        var userId = req.params.id 
+        var userId = req.user.userId
         if(!userId){
             return res.status(200).json({message : "no user id"})
         }

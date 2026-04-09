@@ -1,7 +1,5 @@
 const express = require("express");
 
-
-
 const {
   getAllProducts,
   getSingleProduct,
@@ -28,33 +26,20 @@ router.get("/products", authMiddleware, getAllProducts);
  * @desc    Get single product
  * @access  Private (Admin)
  */
-router.get("/products/:id", authMiddleware, adminMiddleware, getSingleProduct);
+router.get("/products/:id", authMiddleware, getSingleProduct);
 
 /**
  * @route   POST /products
  * @desc    Add new product
  * @access  Private (Admin)
  */
-// router.post(
-//   "/products",
-// //   authMiddleware,
-// //   adminMiddleware,
-//   upload.single("image"),
-//   addNewProduct
-// );
-
-
-
-router.post("/products", upload.single("image"), (req, res) => {
-    console.log("FILE:", req.file);
-
-    if (!req.file) {
-        return res.status(400).json({ message: "file missing" });
-    }
-
-    res.json({ message: "file uploaded successfully" });
-});
-
+router.post(
+  "/products",
+  authMiddleware,
+  adminMiddleware,
+  upload.single("image"),
+  addNewProduct
+);
 
 /**
  * @route   PUT /products/:id

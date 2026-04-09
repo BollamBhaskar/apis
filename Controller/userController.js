@@ -7,6 +7,7 @@ var jwt = require("jsonwebtoken")
 
 
 
+
 var registerUser = async(req,res)=>{
     try{
         var {name,email,password} = req.body
@@ -30,6 +31,7 @@ var registerUser = async(req,res)=>{
         console.log("error",error);
     }
 }
+
 
 
 var login = async(req,res)=>{
