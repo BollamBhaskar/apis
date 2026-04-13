@@ -10,7 +10,7 @@ var orderSchema = new mongoose.Schema({
         {
             product: {
                 type: mongoose.Schema.Types.ObjectId, // ✅ FIXED
-                ref: "product", // ✅ IMPORTANT
+                ref: "products", // must match mongoose.model name in ProductSchema
                 required: true
             },
             quantity: {

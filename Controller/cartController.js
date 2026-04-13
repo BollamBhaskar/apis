@@ -1,4 +1,13 @@
+var mongoose = require("mongoose")
 var Cart = require("../UserSchema/CartSchema")
+require("../UserSchema/ProductSchema")
+
+function sanitizeCartItems(cart) {
+    if (!cart || !cart.items || cart.items.length === 0) return false
+    const before = cart.items.length
+    cart.items = cart.items.filter((line) => line.product != null)
+    return cart.items.length !== before
+}
 
 // ===================
 // GET CART
@@ -6,8 +15,12 @@ var Cart = require("../UserSchema/CartSchema")
 
 var getCart = async (req, res) => {
     try {
-        var userId = req.user.id
-        var cart = await Cart.findOne({ userId })
+        var userId = String(req.user.userId)
+        var cart = await Cart.findOne({ userId }).populate("items.product")
+
+        if (cart && sanitizeCartItems(cart)) {
+            await cart.save()
+        }
 
         res.status(200).json({ cart })
 
@@ -23,8 +36,17 @@ var getCart = async (req, res) => {
 // ===================
 var addToCart = async (req, res) => {
     try {
-        var userId = req.user.id
-        var { productId } = req.body
+        var userId = String(req.user.userId)
+        var productIdRaw = req.body.productId ?? req.body.product
+        if (productIdRaw == null || String(productIdRaw).trim() === "") {
+            return res.status(400).json({
+                message: "productId is required (send JSON body: { \"productId\": \"<mongo id>\" })"
+            })
+        }
+        var productId = String(productIdRaw).trim()
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({ message: "productId must be a valid MongoDB ObjectId" })
+        }
 
         var cart = await Cart.findOne({ userId })
 
@@ -75,5 +97,6 @@ var addToCart = async (req, res) => {
 
 module.exports = {
     getCart,
-    addToCart
+    addToCart,
+    sanitizeCartItems
 }

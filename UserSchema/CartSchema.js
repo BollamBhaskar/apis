@@ -7,8 +7,9 @@ var cartSchema = new mongoose.Schema({
     items: [
         {
             product: {
-                type: mongoose.Schema.Types.ObjectId, // ✅ FIXED
-                ref: "product" // ✅ IMPORTANT for populate
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "products",
+                required: true
             },
             quantity: {
                 type: Number

@@ -4,7 +4,7 @@ var Order = require("../UserSchema/OrderSchema")
 
 var getAllOrders = async(req,res)=>{
     try{
-        var userId = req.user.id 
+        var userId = req.user.userId 
         var allOrders = await find({userId}).sort({ createdAt: -1 });
         res.status(200).json({
             message: "User orders fetched successfully",
@@ -22,7 +22,7 @@ var getAllOrders = async(req,res)=>{
 
 var getSingleOrder = async(req,res)=>{
     try{
-        var userId = req.user.id 
+        var userId = req.user.userId 
         var orderId = req.params.id 
         var order = await Order.findOne({
             _id: orderId,

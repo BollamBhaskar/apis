@@ -4,10 +4,10 @@ const authMiddleware = require("../Middleware/authMiddleware")
 
 var router = express.Router()
 
+// Get current logged-in user's profile (id comes from token, not params)
+router.get("/profile", authMiddleware, getProfile)
 
-router.get("/profile/:id",getProfile)
-
-router.put("/updateprofile/:id",updateProfile)
-
+// Update current logged-in user's profile
+router.put("/updateprofile", authMiddleware, updateProfile)
 
 module.exports = router 
