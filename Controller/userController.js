@@ -55,7 +55,7 @@ var login = async(req,res)=>{
         role : userExists.role
     },
     process.env.JWT_TOKEN,
-    { expiresIn: "1d" }
+    { expiresIn: "10d" }
     )
 
     res.status(200).json({message :"login done",webToken : token})
