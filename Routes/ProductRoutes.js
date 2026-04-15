@@ -8,9 +8,12 @@ const {
   deleteProduct
 } = require("../Controller/ProductController");
 
+
 const authMiddleware = require("../Middleware/authMiddleware");
 const adminMiddleware = require("../Middleware/adminMiddleware");
 const upload = require("../Middleware/imageMiddleware");
+
+
 
 const router = express.Router();
 

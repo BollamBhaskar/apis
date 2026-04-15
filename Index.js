@@ -12,6 +12,7 @@ var orderRoutes = require("./Routes/orderRoutes.js")
 var wishlistRoutes = require("./Routes/wishlistRoutes.js")
 var reviewRoutes = require("./Routes/reviewRoutes.js")
 const { connectRedis } = require("./config/redisClient.js")
+const { createLimiters } = require("./Middleware/rateLimiter");
 
 
 
@@ -20,10 +21,16 @@ var app = express()
 app.use(cors())
 app.use(express.json())
 
+const startServer = async () => {
+  // ✅ 1. Connect Redis FIRST
+  await connectRedis();
+
+  // ✅ 2. Create limiters AFTER Redis
+  const { productLimiter, adminLimiter } = createLimiters();
 
 app.use("/",useRoutes)
 
-app.use("/",productRoutes)
+app.use("/",productLimiter,productRoutes)
 
 app.use("/",profileRoutes)
 
@@ -38,12 +45,14 @@ app.use("/",wishlistRoutes)
 app.use("/",reviewRoutes)
 
 
-connectToDatabase()
-connectRedis()
+await connectToDatabase()
+await connectRedis()
 
 
 var port = process.env.PORT
 
 app.listen(port,()=>{
     console.log("The server is running");
-})
+});
+}
+startServer()
