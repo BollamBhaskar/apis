@@ -46,7 +46,7 @@ app.use("/",reviewRoutes)
 
 
 await connectToDatabase()
-await connectRedis()
+
 
 
 var port = process.env.PORT
