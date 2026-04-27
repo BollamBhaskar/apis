@@ -14,14 +14,14 @@ var userSchema = new mongoose.Schema({
     password : {
         type : String,
         required : true 
+        
     },
     role : {
         type : String,
         enum : ["user","admin"],
-        default : "admin"
+        default : "user"
     }
 })
-
 var User = mongoose.model("User", userSchema)
 
 module.exports = User

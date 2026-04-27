@@ -20,7 +20,8 @@ var registerUser = async(req,res)=>{
         var newUser = await User.create({
             name,
             email,
-            password : hashPassword
+            password : hashPassword,
+            role : "user"
 
         })
         res.status(201).json({message : "account created",user : newUser})
