@@ -7,10 +7,10 @@ const connectToDatabase = require("./database/db.js");
 const { connectRedis } = require("./config/redisClient.js");
 const { createLimiters } = require("./Middleware/rateLimiter");
 
-const userRoutes = require("./Routes/userRoutes");
+const userRoutes = require("./Routes/userRoutes.js");
 const productRoutes = require("./Routes/ProductRoutes.js");
 const profileRoutes = require("./Routes/profileRoutes.js");
-const cartRoutes = require("./Routes/cartRoutes.js");
+const cartRoutes = require("./Routes/CartRoutes.js");
 const paymentRoutes = require("./Routes/paymentRoutes.js");
 const orderRoutes = require("./Routes/orderRoutes.js");
 
