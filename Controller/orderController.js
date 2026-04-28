@@ -1,52 +1,46 @@
+const mongoose = require("mongoose");
+const Order = require("../UserSchema/OrderSchema");
 
-var Order = require("../UserSchema/OrderSchema")
+// ─── GET ALL ORDERS (for logged-in user) ─────────────────────────────────────
+const getAllOrders = async (req, res) => {
+  try {
+    const userId = req.user.userId;
 
+    const orders = await Order.find({ userId })
+      .populate("items.product", "title image price")
+      .sort({ createdAt: -1 })
+      .lean();
 
-var getAllOrders = async(req,res)=>{
-    try{
-        var userId = req.user.userId 
-        var allOrders = await find({userId}).sort({ createdAt: -1 });
-        res.status(200).json({
-            message: "User orders fetched successfully",
-            orders,
-          });
+    return res.status(200).json({ orders });
+  } catch (error) {
+    console.error("getAllOrders error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
+// ─── GET SINGLE ORDER ────────────────────────────────────────────────────────
+const getSingleOrder = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
 
-
-
-    }catch(error){
-        console.log("error",error);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid order ID" });
     }
-}
 
+    const order = await Order.findOne({ _id: id, userId })
+      .populate("items.product", "title image price")
+      .lean();
 
-var getSingleOrder = async(req,res)=>{
-    try{
-        var userId = req.user.userId 
-        var orderId = req.params.id 
-        var order = await Order.findOne({
-            _id: orderId,
-            userId: userId, 
-          });
-          if (!order) {
-            return res.status(404).json({
-              message: "Order not found",
-            });
-            
-          }
-
-          res.status(200).json({
-            message: "Order fetched successfully",
-            order,
-          });
-      
-
-    }catch(error){
-        console.log("error",error);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
     }
-}
 
+    return res.status(200).json({ order });
+  } catch (error) {
+    console.error("getSingleOrder error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
-module.exports = {
-    getAllOrders,getSingleOrder
-}
+module.exports = { getAllOrders, getSingleOrder };

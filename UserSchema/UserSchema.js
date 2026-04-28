@@ -1,27 +1,41 @@
-var mongoose = require("mongoose")
+const mongoose = require("mongoose");
 
-var userSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+      minlength: [2, "Name must be at least 2 characters"],
+      maxlength: [50, "Name cannot exceed 50 characters"],
+    },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Please provide a valid email"],
+    },
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      select: false,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+  },
+  { timestamps: true }
+);
 
-    name : {
-        type : String,
-        required : true
-    },
-    email : {
-        type : String,
-        required : true ,
-        unique : true
-    },
-    password : {
-        type : String,
-        required : true 
-        
-    },
-    role : {
-        type : String,
-        enum : ["user","admin"],
-        default : "user"
-    }
-})
-var User = mongoose.model("User", userSchema)
+// prevent password from leaking in JSON responses
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
 
-module.exports = User
+module.exports = mongoose.model("User", userSchema);

@@ -1,4 +1,5 @@
 const express = require("express");
+const router = express.Router();
 
 const {
   getAllProducts,
@@ -8,34 +9,14 @@ const {
   deleteProduct
 } = require("../Controller/ProductController");
 
-
 const authMiddleware = require("../Middleware/authMiddleware");
 const adminMiddleware = require("../Middleware/adminMiddleware");
 const upload = require("../Middleware/imageMiddleware");
 
+router.get("/products", getAllProducts);
 
+router.get("/products/:id", getSingleProduct);
 
-const router = express.Router();
-
-/**
- * @route   GET /products
- * @desc    Get all products
- * @access  Private
- */
-router.get("/products", authMiddleware, getAllProducts);
-
-/**
- * @route   GET /products/:id
- * @desc    Get single product
- * @access  Private (Admin)
- */
-router.get("/products/:id", authMiddleware, getSingleProduct);
-
-/**
- * @route   POST /products
- * @desc    Add new product
- * @access  Private (Admin)
- */
 router.post(
   "/products",
   authMiddleware,
@@ -44,24 +25,14 @@ router.post(
   addNewProduct
 );
 
-/**
- * @route   PUT /products/:id
- * @desc    Update product
- * @access  Private (Admin)
- */
 router.put(
   "/products/:id",
   authMiddleware,
   adminMiddleware,
-  upload.single("image"), // allows image update
+  upload.single("image"),
   updateProduct
 );
 
-/**
- * @route   DELETE /products/:id
- * @desc    Delete product
- * @access  Private (Admin)
- */
 router.delete(
   "/products/:id",
   authMiddleware,

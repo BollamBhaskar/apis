@@ -1,102 +1,155 @@
-var mongoose = require("mongoose")
-var Cart = require("../UserSchema/CartSchema")
-require("../UserSchema/ProductSchema")
+const mongoose = require("mongoose");
+const Cart = require("../UserSchema/CartSchema");
 
-function sanitizeCartItems(cart) {
-    if (!cart || !cart.items || cart.items.length === 0) return false
-    const before = cart.items.length
-    cart.items = cart.items.filter((line) => line.product != null)
-    return cart.items.length !== before
-}
+// ─── GET CART ────────────────────────────────────────────────────────────────
+const getCart = async (req, res) => {
+  try {
+    const userId = req.user.userId;
 
-// ===================
-// GET CART
-// ===================
+    const cart = await Cart.findOne({ userId }).populate("items.product", "title price image stock");
 
-var getCart = async (req, res) => {
-    try {
-        var userId = String(req.user.userId)
-        var cart = await Cart.findOne({ userId }).populate("items.product")
-
-        if (cart && sanitizeCartItems(cart)) {
-            await cart.save()
-        }
-
-        res.status(200).json({ cart })
-
-    } catch (error) {
-        console.log("error", error)
-        res.status(500).json({ error: "server error" })
+    if (!cart) {
+      return res.status(200).json({ cart: { items: [], total: 0 } });
     }
-}
 
+    // compute total on the fly
+    const total = cart.items.reduce((sum, item) => {
+      const price = item.product?.price || 0;
+      return sum + price * item.quantity;
+    }, 0);
 
-// ===================
-// ADD TO CART
-// ===================
-var addToCart = async (req, res) => {
-    try {
-        var userId = String(req.user.userId)
-        var productIdRaw = req.body.productId ?? req.body.product
-        if (productIdRaw == null || String(productIdRaw).trim() === "") {
-            return res.status(400).json({
-                message: "productId is required (send JSON body: { \"productId\": \"<mongo id>\" })"
-            })
-        }
-        var productId = String(productIdRaw).trim()
-        if (!mongoose.Types.ObjectId.isValid(productId)) {
-            return res.status(400).json({ message: "productId must be a valid MongoDB ObjectId" })
-        }
+    return res.status(200).json({ cart, total });
+  } catch (error) {
+    console.error("getCart error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
-        var cart = await Cart.findOne({ userId })
+// ─── ADD TO CART ─────────────────────────────────────────────────────────────
+const addToCart = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { productId } = req.body;
 
-        // 🟢 If cart does not exist → create & return
-        if (!cart) {
-            cart = await Cart.create({
-                userId,
-                items: [
-                    {
-                        product: productId,
-                        quantity: 1
-                    }
-                ]
-            })
-
-            return res.status(201).json({
-                message: "cart created",
-                data: cart
-            })
-        }
-
-        // 🟢 If cart exists → update
-        var existingItem = cart.items.find(
-            item => item.product == productId
-        )
-
-        if (existingItem) {
-            existingItem.quantity += 1
-        } else {
-            cart.items.push({
-                product: productId,
-                quantity: 1
-            })
-        }
-
-        await cart.save()
-
-        return res.status(200).json({
-            message: "cart updated",
-            data: cart
-        })
-
-    } catch (error) {
-        console.log("error", error)
-        res.status(500).json({ error: "server error" })
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Valid product ID is required" });
     }
-}
 
-module.exports = {
-    getCart,
-    addToCart,
-    sanitizeCartItems
-}
+    let cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+      cart = await Cart.create({
+        userId,
+        items: [{ product: productId, quantity: 1 }],
+      });
+      return res.status(201).json({ message: "Cart created", cart });
+    }
+
+    const item = cart.items.find((i) => i.product.toString() === productId);
+
+    if (item) {
+      item.quantity += 1;
+    } else {
+      cart.items.push({ product: productId, quantity: 1 });
+    }
+
+    await cart.save();
+    return res.status(200).json({ message: "Cart updated", cart });
+  } catch (error) {
+    console.error("addToCart error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── REMOVE FROM CART ────────────────────────────────────────────────────────
+const removeFromCart = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { productId } = req.body;
+
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Valid product ID is required" });
+    }
+
+    const cart = await Cart.findOne({ userId });
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    const initialLength = cart.items.length;
+    cart.items = cart.items.filter((item) => item.product.toString() !== productId);
+
+    if (cart.items.length === initialLength) {
+      return res.status(404).json({ message: "Item not found in cart" });
+    }
+
+    await cart.save();
+    return res.status(200).json({ message: "Item removed", cart });
+  } catch (error) {
+    console.error("removeFromCart error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── UPDATE QUANTITY ─────────────────────────────────────────────────────────
+const updateQuantity = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { productId, action } = req.body;
+
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Valid product ID is required" });
+    }
+
+    if (!["inc", "dec"].includes(action)) {
+      return res.status(400).json({ message: "Action must be 'inc' or 'dec'" });
+    }
+
+    const cart = await Cart.findOne({ userId });
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    const item = cart.items.find((i) => i.product.toString() === productId);
+    if (!item) {
+      return res.status(404).json({ message: "Item not in cart" });
+    }
+
+    if (action === "inc") {
+      item.quantity += 1;
+    } else {
+      item.quantity -= 1;
+      if (item.quantity <= 0) {
+        cart.items = cart.items.filter((i) => i.product.toString() !== productId);
+      }
+    }
+
+    await cart.save();
+    return res.status(200).json({ message: "Quantity updated", cart });
+  } catch (error) {
+    console.error("updateQuantity error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ─── CLEAR CART ──────────────────────────────────────────────────────────────
+const clearCart = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const cart = await Cart.findOne({ userId });
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    cart.items = [];
+    await cart.save();
+
+    return res.status(200).json({ message: "Cart cleared" });
+  } catch (error) {
+    console.error("clearCart error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+module.exports = { getCart, addToCart, removeFromCart, updateQuantity, clearCart };

@@ -6,7 +6,7 @@ var { verifyPayment } = require("../Controller/verifyPaymentController")
 
 var router = express.Router()
 
-router.get("/checkout", authMiddleware, checkout)
+router.post("/checkout", authMiddleware, checkout)
 router.post("/verifypayment", authMiddleware, verifyPayment)
 
 module.exports = router

@@ -1,6 +1,6 @@
-var cloudinary = require("../config/cloudinary");
+const cloudinary = require("../config/cloudinary");
 
-async function uploadToCloudinary(filepath) {
+const uploadToCloudinary = async (filepath) => {
     try {
         const result = await cloudinary.uploader.upload(filepath, {
             folder: "uploads"
@@ -13,10 +13,8 @@ async function uploadToCloudinary(filepath) {
 
     } catch (error) {
         console.error("Cloudinary Upload Error:", error);
-        throw new Error("Image upload failed");
+        throw error;
     }
-}
-
-module.exports = {
-    uploadToCloudinary
 };
+
+module.exports = { uploadToCloudinary };

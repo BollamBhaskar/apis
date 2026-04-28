@@ -1,55 +1,28 @@
-var {createClient} = require("redis")
+const { createClient } = require("redis");
 
+const client = createClient({
+  url: process.env.REDIS_URL,
+  socket: {
+    reconnectStrategy: (retries) => Math.min(retries * 100, 3000),
+  },
+});
 
-var client = createClient({
-    url : process.env.REDIS_URL
-})
+client.on("error", (err) => {
+  console.error("Redis error:", err.message);
+});
 
-var redisReady = false
+client.on("reconnecting", () => {
+  console.warn("Redis reconnecting...");
+});
 
-client.on("connect",()=>{
-    console.log("connected to the redis");
-})
+const connectRedis = async () => {
+  try {
+    await client.connect();
+    console.log("✅ Redis connected");
+  } catch (error) {
+    console.error("❌ Redis connection error:", error.message);
+    process.exit(1);
+  }
+};
 
-client.on("ready", () => {
-    redisReady = true
-    console.log("redis client ready")
-})
-
-client.on("end", () => {
-    redisReady = false
-    console.log("redis client disconnected")
-})
-
-client.on("error",(error)=>{
-    redisReady = false
-    console.log("error",error);
-})
-
-
-var connectRedis = async()=>{
-    try{
-        if (!process.env.REDIS_URL) {
-            console.log("REDIS_URL missing, skipping redis connection")
-            return
-        }
-
-        if (client.isOpen) {
-            return
-        }
-
-        await client.connect()
-
-    }catch(error){
-        redisReady = false
-        console.log("redis connect error", error.message);
-    }
-}
-
-
-
-
-module.exports = {
-    client,connectRedis,
-    isRedisReady: () => redisReady && client.isOpen
-}
+module.exports = { client, connectRedis };

@@ -1,27 +1,38 @@
-var mongoose = require("mongoose")
+const mongoose = require("mongoose");
 
-var productSchema = new mongoose.Schema({
-    title : {
-        type : String
+const productSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: [true, "Title is required"],
+      trim: true,
+      maxlength: [200, "Title cannot exceed 200 characters"],
     },
-    description : {
-        type : String
+    description: {
+      type: String,
+      required: [true, "Description is required"],
+      trim: true,
+      maxlength: [2000, "Description cannot exceed 2000 characters"],
     },
-    price : {
-        type : Number
+    price: {
+      type: Number,
+      required: [true, "Price is required"],
+      min: [0, "Price cannot be negative"],
     },
-    image : {
-        url : {
-            type : String
-        },
-        publicId : {
-            type : String
-        }
-    }
+    stock: {
+      type: Number,
+      default: 0,
+      min: [0, "Stock cannot be negative"],
+    },
+    image: {
+      url: { type: String, default: "" },
+      publicId: { type: String, default: "" },
+    },
+  },
+  { timestamps: true }
+);
 
-})
+// index for text search
+productSchema.index({ title: "text", description: "text" });
 
-var Product = mongoose.model("products",productSchema)
-
-
-module.exports = Product
+module.exports = mongoose.model("Product", productSchema);

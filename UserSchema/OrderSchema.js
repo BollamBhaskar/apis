@@ -1,40 +1,46 @@
-var mongoose = require("mongoose")
+const mongoose = require("mongoose");
 
-var orderSchema = new mongoose.Schema({
+const orderSchema = new mongoose.Schema(
+  {
     userId: {
-        type: String,
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
-
     items: [
-        {
-            product: {
-                type: mongoose.Schema.Types.ObjectId, // ✅ FIXED
-                ref: "products", // must match mongoose.model name in ProductSchema
-                required: true
-            },
-            quantity: {
-                type: Number,
-                required: true
-            }
-        }
+      {
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+        price: {
+          type: Number,
+          required: true,
+        },
+      },
     ],
-
     totalAmount: {
-        type: Number,
-        required: true
+      type: Number,
+      required: true,
+      min: 0,
     },
-
     status: {
-        type: String,
-        enum: ["pending", "paid", "failed"],
-        default: "pending"
+      type: String,
+      enum: ["pending", "paid", "processing", "shipped", "delivered", "cancelled"],
+      default: "pending",
     },
+    razorpayOrderId: { type: String },
+    paymentId: { type: String },
+  },
+  { timestamps: true }
+);
 
-    paymentId: String,
-    orderId: String,
-    signature: String
+orderSchema.index({ userId: 1, createdAt: -1 });
 
-}, { timestamps: true })
-
-module.exports = mongoose.model("Order", orderSchema)
+module.exports = mongoose.model("Order", orderSchema);

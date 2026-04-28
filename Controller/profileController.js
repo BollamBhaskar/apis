@@ -1,51 +1,76 @@
+const User = require("../UserSchema/UserSchema");
+const bcrypt = require("bcrypt");
 
-var User = require("../UserSchema/UserSchema")
+// ─── GET PROFILE ─────────────────────────────────────────────────────────────
+const getProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
 
-var bycrpt = require("bcrypt")
-
-var getProfile = async(req,res)=>{
-    try{
-        var userId = req.user.userId
-        if(!userId){
-            return res.status(403).json({message : "no user found"})
-        }
-        var user = await User.findById(userId).select("-password")
-        res.status(200).json({user})
-
-        
-    }catch(error){
-        console.log("error",error);
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-}
 
-var updateProfile = async(req,res)=>{
-    try{
-        var userId = req.user.userId
-        if(!userId){
-            return res.status(200).json({message : "no user id"})
-        }
-        var {name,email,password} = req.body 
-        var updatedUser = {}
-        if(name){
-            updatedUser.name = name
-        }
-        if(email){
-            updatedUser.email = email
-        }
-        if(password){
-            var hashedPassword = await bycrpt.hash(password,10)
-            updatedUser.password = hashedPassword
-        }
-        var updateUserdata = await User.findByIdAndUpdate(userId,updatedUser,{new : true})
-        res.status(201).json({updateUserdata})
+    return res.status(200).json({ user }); // password excluded via select: false
+  } catch (error) {
+    console.error("getProfile error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
+// ─── UPDATE PROFILE ──────────────────────────────────────────────────────────
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { name, email, password } = req.body;
 
-    }catch(error){
-        console.log("error",error);
+    const updates = {};
+
+    if (name) {
+      if (name.trim().length < 2) {
+        return res.status(400).json({ message: "Name must be at least 2 characters" });
+      }
+      updates.name = name.trim();
     }
-}
 
-module.exports = {
-    getProfile,
-    updateProfile
-}
+    if (email) {
+      const emailRegex = /^\S+@\S+\.\S+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      // check if email is taken by another user
+      const existing = await User.findOne({ email: email.toLowerCase().trim() });
+      if (existing && existing._id.toString() !== userId) {
+        return res.status(409).json({ message: "Email already in use" });
+      }
+      updates.email = email.toLowerCase().trim();
+    }
+
+    if (password) {
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      updates.password = await bcrypt.hash(password, 12);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields provided to update" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updates, {
+      new: true,
+      runValidators: true,
+    }); // password excluded via select: false
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({ message: "Profile updated", user: updatedUser });
+  } catch (error) {
+    console.error("updateProfile error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+module.exports = { getProfile, updateProfile };

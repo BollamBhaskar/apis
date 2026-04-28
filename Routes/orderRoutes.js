@@ -11,4 +11,4 @@ router.get("/orders",authMiddleware,getAllOrders)
 router.get("/orders/:id",authMiddleware,getSingleOrder)
 
 
-module.exports = router 
+module.exports = router   
