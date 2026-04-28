@@ -10,7 +10,7 @@ const createLimiters = () => {
       sendCommand: (...args) => client.sendCommand(args),
     }),
     windowMs: 1* 60 * 1000,
-    max: 5,
+    max: 50,
     message: {
       success: false,
       message: "Too many requests, please try again later",
@@ -22,7 +22,7 @@ const createLimiters = () => {
       sendCommand: (...args) => client.sendCommand(args),
     }),
     windowMs: 1 * 60 * 1000,
-    max: 20,
+    max: 50,
     message: {
       success: false,
       message: "Too many admin actions, slow down",
