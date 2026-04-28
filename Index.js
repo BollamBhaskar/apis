@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
-const connectToDatabase = require("./DataBase/db.js");
+const connectToDatabase = require("./database/db.js");
 const { connectRedis } = require("./config/redisClient.js");
 const { createLimiters } = require("./Middleware/rateLimiter");
 
