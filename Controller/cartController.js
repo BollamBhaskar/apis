@@ -13,13 +13,39 @@ const getCart = async (req, res) => {
       return res.status(200).json({ cart: { items: [], total: 0 } });
     }
 
+    const syncedItems = [];
+    let cartUpdated = false;
+
+    for (const item of cart.items) {
+      if (!item.product || item.product.stock <= 0) {
+        cartUpdated = true;
+        continue;
+      }
+
+      const allowedQty = Math.min(item.quantity, item.product.stock);
+      if (allowedQty !== item.quantity) {
+        cartUpdated = true;
+      }
+
+      syncedItems.push({
+        product: item.product._id,
+        quantity: allowedQty,
+      });
+    }
+
+    if (cartUpdated) {
+      cart.items = syncedItems;
+      await cart.save();
+      await cart.populate("items.product", "title price image stock");
+    }
+
     // compute total on the fly
     const total = cart.items.reduce((sum, item) => {
       const price = item.product?.price || 0;
       return sum + price * item.quantity;
     }, 0);
 
-    return res.status(200).json({ cart, total });
+    return res.status(200).json({ cart, total, cartUpdated });
   } catch (error) {
     console.error("getCart error:", error);
     return res.status(500).json({ message: "Server error" });

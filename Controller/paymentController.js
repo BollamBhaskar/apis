@@ -11,26 +11,52 @@ const checkout = async (req, res) => {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
+    const removedItems = [];
+    const adjustedItems = [];
+    const normalizedItems = [];
     let totalAmount = 0;
 
     for (const item of cart.items) {
       const product = item.product;
+      const productId = item.product?._id?.toString() || item.product?.toString();
 
-      if (!product) {
-        return res.status(400).json({ message: "One or more products no longer exist" });
+      if (!product || product.stock <= 0) {
+        removedItems.push({
+          productId,
+          title: product?.title || "Unavailable product",
+        });
+        continue;
       }
 
-      if (item.quantity > product.stock) {
-        return res.status(400).json({
-          message: `Insufficient stock for "${product.title}". Only ${product.stock} left in stock.`,
+      const allowedQty = Math.min(item.quantity, product.stock);
+      if (allowedQty < item.quantity) {
+        adjustedItems.push({
+          productId,
+          title: product.title,
+          requested: item.quantity,
+          available: product.stock,
         });
       }
 
-      totalAmount += product.price * item.quantity;
+      normalizedItems.push({
+        product: product._id,
+        quantity: allowedQty,
+      });
+      totalAmount += product.price * allowedQty;
+    }
+
+    const cartChanged = removedItems.length > 0 || adjustedItems.length > 0;
+    if (cartChanged) {
+      cart.items = normalizedItems;
+      await cart.save();
     }
 
     if (totalAmount <= 0) {
-      return res.status(400).json({ message: "Invalid cart total" });
+      return res.status(400).json({
+        message: "All unavailable items were removed from cart. Please review your cart and try again.",
+        cartUpdated: true,
+        removedItems,
+      });
     }
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
@@ -45,9 +71,14 @@ const checkout = async (req, res) => {
     });
 
     return res.status(200).json({
-      message: "Checkout initiated",
+      message: cartChanged
+        ? "Checkout initiated after syncing cart with current stock"
+        : "Checkout initiated",
       order,
       totalAmount,
+      cartUpdated: cartChanged,
+      removedItems,
+      adjustedItems,
     });
   } catch (error) {
     console.error("checkout error:", error);
