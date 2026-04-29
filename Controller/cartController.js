@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Cart = require("../UserSchema/CartSchema");
+const Product = require("../UserSchema/ProductSchema");
 
 // ─── GET CART ────────────────────────────────────────────────────────────────
 const getCart = async (req, res) => {
@@ -35,9 +36,18 @@ const addToCart = async (req, res) => {
       return res.status(400).json({ message: "Valid product ID is required" });
     }
 
+    const product = await Product.findById(productId).select("stock");
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
     let cart = await Cart.findOne({ userId });
 
     if (!cart) {
+      if (product.stock < 1) {
+        return res.status(400).json({ message: "Insufficient stock" });
+      }
+
       cart = await Cart.create({
         userId,
         items: [{ product: productId, quantity: 1 }],
@@ -48,8 +58,16 @@ const addToCart = async (req, res) => {
     const item = cart.items.find((i) => i.product.toString() === productId);
 
     if (item) {
+      if (item.quantity + 1 > product.stock) {
+        return res.status(400).json({
+          message: `Insufficient stock. Only ${product.stock} item(s) available`,
+        });
+      }
       item.quantity += 1;
     } else {
+      if (product.stock < 1) {
+        return res.status(400).json({ message: "Insufficient stock" });
+      }
       cart.items.push({ product: productId, quantity: 1 });
     }
 
@@ -116,6 +134,15 @@ const updateQuantity = async (req, res) => {
     }
 
     if (action === "inc") {
+      const product = await Product.findById(productId).select("stock");
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      if (item.quantity + 1 > product.stock) {
+        return res.status(400).json({
+          message: `Insufficient stock. Only ${product.stock} item(s) available`,
+        });
+      }
       item.quantity += 1;
     } else {
       item.quantity -= 1;
