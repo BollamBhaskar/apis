@@ -216,6 +216,11 @@ const mongoose = require("mongoose");
 const Cart = require("../UserSchema/CartSchema");
 const Product = require("../UserSchema/ProductSchema");
 
+const normalizeStock = (rawStock) => {
+  const stock = Number(rawStock);
+  return Number.isFinite(stock) ? Math.max(0, stock) : 0;
+};
+
 // ─── GET CART ────────────────────────────────────────────────────────────────
 const getCart = async (req, res) => {
   try {
@@ -276,11 +281,12 @@ const addToCart = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    const stock = normalizeStock(product.stock);
 
     let cart = await Cart.findOne({ userId });
 
     if (!cart) {
-      if (product.stock < 1) {
+      if (stock < 1) {
         return res.status(400).json({ message: "Insufficient stock" });
       }
       cart = await Cart.create({
@@ -293,14 +299,15 @@ const addToCart = async (req, res) => {
     const item = cart.items.find((i) => i.product.toString() === productId);
 
     if (item) {
-      if (item.quantity + 1 > product.stock) {
+      const remaining = stock - item.quantity;
+      if (remaining < 1) {
         return res.status(400).json({
-          message: `Insufficient stock. Only ${product.stock} item(s) available`,
+          message: `Insufficient stock. Only ${stock} item(s) available`,
         });
       }
       item.quantity += 1;
     } else {
-      if (product.stock < 1) {
+      if (stock < 1) {
         return res.status(400).json({ message: "Insufficient stock" });
       }
       cart.items.push({ product: productId, quantity: 1 });
@@ -373,9 +380,11 @@ const updateQuantity = async (req, res) => {
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
-      if (item.quantity + 1 > product.stock) {
+      const stock = normalizeStock(product.stock);
+      const remaining = stock - item.quantity;
+      if (remaining < 1) {
         return res.status(400).json({
-          message: `Insufficient stock. Only ${product.stock} item(s) available`,
+          message: `Insufficient stock. Only ${stock} item(s) available`,
         });
       }
       item.quantity += 1;
