@@ -1,6 +1,11 @@
 const Cart = require("../UserSchema/CartSchema");
 const razorpay = require("../config/razorpay");
 
+const normalizeStock = (rawStock) => {
+  const stock = Number(rawStock);
+  return Number.isFinite(stock) ? Math.max(0, stock) : 0;
+};
+
 const checkout = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -20,7 +25,8 @@ const checkout = async (req, res) => {
       const product = item.product;
       const productId = item.product?._id?.toString() || item.product?.toString();
 
-      if (!product || product.stock <= 0) {
+      const stock = normalizeStock(product?.stock);
+      if (!product || stock <= 0) {
         removedItems.push({
           productId,
           title: product?.title || "Unavailable product",
@@ -28,13 +34,13 @@ const checkout = async (req, res) => {
         continue;
       }
 
-      const allowedQty = Math.min(item.quantity, product.stock);
+      const allowedQty = Math.min(item.quantity, stock);
       if (allowedQty < item.quantity) {
         adjustedItems.push({
           productId,
           title: product.title,
           requested: item.quantity,
-          available: product.stock,
+          available: stock,
         });
       }
 

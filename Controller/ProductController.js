@@ -230,6 +230,17 @@ const fs = require("fs");
 
 const CACHE_TTL = parseInt(process.env.CACHE_TTL) || 3600;
 
+const parseStockValue = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return NaN;
+  }
+  return parsed;
+};
+
 // helper: safely delete a local temp file
 const deleteTempFile = (filePath) => {
   try {
@@ -335,11 +346,16 @@ const addNewProduct = async (req, res) => {
     deleteTempFile(filePath);
     filePath = null;
 
+    const parsedStock = parseStockValue(stock);
+    if (Number.isNaN(parsedStock)) {
+      return res.status(400).json({ message: "Stock must be a non-negative integer" });
+    }
+
     const product = await Product.create({
       title: title.trim(),
       description: description.trim(),
       price: parsedPrice,
-      stock: parseInt(stock) || 100,  // ✅ default 100 instead of 0
+      stock: parsedStock === null ? 100 : parsedStock,
       image: { publicId: result.publicId, url: result.url },
     });
 
@@ -375,7 +391,16 @@ const updateProduct = async (req, res) => {
       }
       updates.price = parsedPrice;
     }
-    if (stock !== undefined) updates.stock = parseInt(stock) || 0;
+    if (stock !== undefined) {
+      const parsedStock = parseStockValue(stock);
+      if (Number.isNaN(parsedStock)) {
+        deleteTempFile(filePath);
+        return res.status(400).json({ message: "Stock must be a non-negative integer" });
+      }
+      if (parsedStock !== null) {
+        updates.stock = parsedStock;
+      }
+    }
 
     if (req.file) {
       const result = await uploadToCloudinary(filePath);

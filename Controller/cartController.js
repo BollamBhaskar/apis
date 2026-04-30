@@ -235,11 +235,12 @@ const getCart = async (req, res) => {
     let cartUpdated = false;
 
     for (const item of cart.items) {
-      if (!item.product || item.product.stock <= 0) {
+      const stock = normalizeStock(item.product?.stock);
+      if (!item.product || stock <= 0) {
         cartUpdated = true;
         continue;
       }
-      const allowedQty = Math.min(item.quantity, item.product.stock);
+      const allowedQty = Math.min(item.quantity, stock);
       if (allowedQty !== item.quantity) {
         cartUpdated = true;
       }
